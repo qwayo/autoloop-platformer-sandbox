@@ -30,9 +30,22 @@ for (const outcome of ['跌落', '通关']) {
           return 1;
         };
         const translate = CanvasRenderingContext2D.prototype.translate;
+        const scale = CanvasRenderingContext2D.prototype.scale;
+        let playerPosition;
         CanvasRenderingContext2D.prototype.translate = function (x, y) {
-          if (y !== 0) window.测试位置 = { x, y };
+          playerPosition = y !== 0 ? { x, y } : null;
           return translate.call(this, x, y);
+        };
+        CanvasRenderingContext2D.prototype.scale = function (x, y) {
+          if (playerPosition) {
+            // 左朝向绘制原点包含角色宽度，恢复玩家的实际横坐标。
+            window.测试位置 = {
+              x: playerPosition.x - (x < 0 ? 26 : 0),
+              y: playerPosition.y,
+            };
+            playerPosition = null;
+          }
+          return scale.call(this, x, y);
         };
       });
       await page.goto(pathToFileURL(path.resolve(__dirname, '../index.html')).href);
