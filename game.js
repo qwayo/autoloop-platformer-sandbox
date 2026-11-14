@@ -213,6 +213,7 @@
       keys.clear();
       jumpQueued = false;
       result.hidden = true;
+      document.getElementById('game').focus({ preventScroll: true });
       updateCounter();
     }
 
