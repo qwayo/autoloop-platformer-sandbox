@@ -12,7 +12,7 @@
 
 ## 检查与交付
 
-用 Node.js 24 运行 `npm test`。GitHub Actions 会在面向 `main` 的 PR 创建、更新、重开和转为就绪时运行检查。`main` 更新后，CD 对该提交执行同样的检查，再把 `index.html`、`game.css` 和 `game.js` 打成 ZIP，交付到本仓库的私有 Releases。每份交付的标签对应一个完整的提交 SHA。
+用 Node.js 24 运行 `npm test`。GitHub Actions 会在面向 `main` 的 PR 创建、更新、重开和转为就绪时运行检查。`main` 更新后，CD 对该提交执行同样的检查，再把 `index.html`、`game.css` 和 `game.js` 打成 ZIP，交付到本仓库的 Releases。每份交付的标签对应一个完整的提交 SHA。
 
 ## 试点约定
 

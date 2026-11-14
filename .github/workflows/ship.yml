@@ -12,7 +12,7 @@ jobs:
     uses: ./.github/workflows/check.yml
 
   ship:
-    if: github.event.repository.private
+    if: github.repository == 'qwayo/autoloop-platformer-sandbox'
     needs: check
     concurrency:
       group: pilot-${{ github.sha }}
@@ -30,7 +30,7 @@ jobs:
         run: |
           zip "$RUNNER_TEMP/platformer.zip" index.html game.css game.js
           unzip -t "$RUNNER_TEMP/platformer.zip"
-      - name: 交付到私有 Releases
+      - name: 交付到 Releases
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
