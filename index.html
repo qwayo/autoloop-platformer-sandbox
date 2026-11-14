@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>苔原信使</title>
+  <link rel="stylesheet" href="game.css">
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>苔原信使</h1>
+      <p id="counter" role="status">种子 0 / 3</p>
+    </header>
+    <div class="stage">
+      <canvas id="game" width="960" height="450" aria-label="苔原信使横版关卡" aria-describedby="controls">当前浏览器无法显示游戏画面。</canvas>
+      <section id="result" class="result" aria-labelledby="result-title" hidden>
+        <h2 id="result-title"></h2>
+        <p id="result-detail"></p>
+        <button id="retry" type="button">重试</button>
+      </section>
+    </div>
+    <p id="controls">用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 移动，按 <kbd>空格</kbd> 或 <kbd>↑</kbd> 跳跃，按 <kbd>R</kbd> 重开。翻过断崖，到达山谷另一头的旗子。</p>
+  </main>
+</body>
+</html>

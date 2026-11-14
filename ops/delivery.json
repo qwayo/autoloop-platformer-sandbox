@@ -1,0 +1,7 @@
+{
+  "repo": "qwayo/autoloop-platformer-sandbox",
+  "internal": [],
+  "check": { "workflow": "check.yml", "job": "check" },
+  "ship": { "workflow": "ship.yml" },
+  "review": { "points": "AGENTS.md", "status": "agent-review" }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "autoloop-platformer-sandbox",
+  "version": "0.1.0",
+  "private": true,
+  "description": "可直接在浏览器打开的原创横版跳台小游戏",
+  "scripts": {
+    "test": "node --test"
+  }
+}

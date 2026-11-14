@@ -1,0 +1,51 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+
+  ship:
+    if: github.event.repository.private
+    needs: check
+    concurrency:
+      group: pilot-${{ github.sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: 取得通过检查的主分支提交
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 打包离线游戏
+        run: |
+          zip "$RUNNER_TEMP/platformer.zip" index.html game.css game.js
+          unzip -t "$RUNNER_TEMP/platformer.zip"
+      - name: 交付到私有 Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="pilot-$GITHUB_SHA"
+          archive="$RUNNER_TEMP/platformer.zip"
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --draft --target "$GITHUB_SHA" \
+              --title "游戏试点 ${GITHUB_SHA:0:7}" \
+              --notes "解压 platformer.zip，打开 index.html 即可游玩。"
+          fi
+          if [[ "$(gh release view "$tag" --json isDraft --jq .isDraft)" == "true" ]]; then
+            gh release upload "$tag" "$archive" --clobber
+            gh release edit "$tag" --draft=false
+          fi
+          gh release view "$tag" --json assets,isDraft --jq \
+            'select(.isDraft == false) | .assets[] | select(.name == "platformer.zip" and .size > 0) | .url' \
+            | grep -q .
