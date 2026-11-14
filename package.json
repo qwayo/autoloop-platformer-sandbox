@@ -4,6 +4,10 @@
   "private": true,
   "description": "可直接在浏览器打开的原创横版跳台小游戏",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:browser": "playwright test browser-tests --browser=chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
   }
 }
