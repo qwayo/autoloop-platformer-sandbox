@@ -80,9 +80,13 @@ for (const outcome of ['跌落', '通关']) {
       const retry = page.getByRole('button', { name: outcome === '通关' ? '再玩一次' : '重试' });
       await expect(page.locator('#result-title')).toHaveText(outcome === '通关' ? '已到达旗子' : '掉下山谷了');
       await expect(retry).toBeFocused();
+      await expect(page.locator('#restart-button')).toBeDisabled();
+      await page.evaluate(() => document.getElementById('restart-button').click());
+      await expect(page.locator('#result')).toBeVisible();
       if (activation === '鼠标') await retry.click();
       else await page.keyboard.press(activation === '回车' ? 'Enter' : 'Space');
       await expect(page.locator('#result')).toBeHidden();
+      await expect(page.locator('#restart-button')).toBeEnabled();
       await expect(page.locator('#game')).toBeFocused();
       await advance(page, 1);
       expect(await position(page)).toEqual(start);
