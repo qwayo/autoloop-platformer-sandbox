@@ -86,7 +86,7 @@ test('真实多指触屏可同时移动和跳跃，松手后停止且不连续�
   await advance(page, 2);
   expect((await position(page)).x).toBeGreaterThan(start.x);
   expect((await position(page)).y).toBeLessThan(start.y);
-  await touch('touchEnd', ['jump']);
+  await touch('touchEnd', ['right']);
   const stoppedX = (await position(page)).x;
   await advance(page, 60);
   expect(await position(page)).toEqual({ x: stoppedX, y: start.y });
