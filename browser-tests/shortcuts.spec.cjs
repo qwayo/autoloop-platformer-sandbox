@@ -238,6 +238,70 @@ for (const modifier of ['ctrlKey', 'metaKey', 'altKey']) {
   }
 }
 
+for (const code of ['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD']) {
+  for (const source of ['主动暂停', '失焦', '重开按钮', '重开快捷键']) {
+    test(`${code} 在${source}后忽略重复事件，松键重按恢复移动`, async ({ page }) => {
+      const movingRight = code === 'ArrowRight' || code === 'KeyD';
+      function expectMovement(before, after) {
+        if (movingRight) expect(after.x).toBeGreaterThan(before.x);
+        else expect(after.x).toBeLessThan(before.x);
+        expect(after.y).toBe(before.y);
+      }
+
+      const start = await position(page);
+      expect(await sendKey(page, 'keydown', code)).toBe(true);
+      await advance(page, 2);
+      const moved = await position(page);
+      expectMovement(start, moved);
+
+      // 正常长按时，重复事件和没有新事件的后续帧均保留移动。
+      expect(await sendKey(page, 'keydown', code, { repeat: true })).toBe(true);
+      await advance(page, 2);
+      const repeated = await position(page);
+      expectMovement(moved, repeated);
+      await advance(page, 2);
+      expectMovement(repeated, await position(page));
+
+      // 不发送 keyup，模拟原方向键始终保持按下。
+      if (source === '主动暂停') {
+        await page.locator('#pause-button').click();
+      } else if (source === '失焦') {
+        await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      } else if (source === '重开按钮') {
+        await page.locator('#restart-button').click();
+      } else {
+        await page.keyboard.press('r');
+      }
+      if (source === '主动暂停' || source === '失焦') {
+        await expect(page.locator('#pause')).toBeVisible();
+        await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+        await page.locator('#resume').click();
+      }
+      await expect(page.locator('#pause')).toBeHidden();
+      await expect(page.locator('#game')).toBeFocused();
+      await advance(page, 3);
+      const cleared = await position(page);
+
+      // 恢复后主动发送多次重复事件，不能重新激活已清除的方向。
+      for (let i = 0; i < 2; i += 1) {
+        expect(await sendKey(page, 'keydown', code, { repeat: true })).toBe(true);
+        await advance(page, 3);
+        expect(await position(page)).toEqual(cleared);
+      }
+      await sendKey(page, 'keyup', code);
+      await advance(page, 2);
+      expect(await position(page)).toEqual(cleared);
+      expect(await sendKey(page, 'keydown', code)).toBe(true);
+      await advance(page, 2);
+      const pressedAgain = await position(page);
+      expectMovement(cleared, pressedAgain);
+      await sendKey(page, 'keyup', code);
+      await advance(page, 3);
+      expect(await position(page)).toEqual(pressedAgain);
+    });
+  }
+}
+
 test('按钮键盘输入与原有方向快捷键分别释放', async ({ page }) => {
   const button = await focusAction(page, 'right');
   await page.keyboard.down('Space');
