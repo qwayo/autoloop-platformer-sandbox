@@ -204,7 +204,21 @@
     const keys = new Set();
     const touchButtons = [...document.querySelectorAll('[data-touch-action]')];
     const touchPointers = new Map();
+    const buttonKeys = new Map();
+    let buttonJumpQueued = false;
     let touchJumpQueued = false;
+
+    function buttonHeld(action) {
+      return [...buttonKeys.values()].some((button) => button.dataset.touchAction === action);
+    }
+
+    function clearButtonKeyboardInput(button) {
+      for (const [code, owner] of buttonKeys) {
+        if (!button || owner === button) buttonKeys.delete(code);
+      }
+      if (!button || button.dataset.touchAction === 'jump') buttonJumpQueued = false;
+      updateTouchButtons();
+    }
 
     function touchHeld(action) {
       return [...touchPointers.values()].some((button) => button.dataset.touchAction === action);
@@ -212,7 +226,8 @@
 
     function updateTouchButtons() {
       for (const button of touchButtons) {
-        button.classList.toggle('is-held', [...touchPointers.values()].includes(button));
+        button.classList.toggle('is-held',
+          [...touchPointers.values()].includes(button) || [...buttonKeys.values()].includes(button));
       }
     }
 
@@ -241,6 +256,7 @@
     let elapsed = 0;
 
     function resetInputAndTiming() {
+      clearButtonKeyboardInput();
       clearTouchInput();
       keys.clear();
       jumpQueued = false;
@@ -287,6 +303,7 @@
     }
 
     function showResult() {
+      clearButtonKeyboardInput();
       clearTouchInput();
       keys.clear();
       jumpQueued = false;
@@ -300,6 +317,17 @@
     }
 
     for (const button of touchButtons) {
+      button.addEventListener('keydown', (event) => {
+        if (!['Space', 'Enter'].includes(event.code)) return;
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        event.preventDefault();
+        if (document.hidden) pauseGame();
+        if (paused || game.status !== 'playing' || event.repeat || buttonKeys.has(event.code)) return;
+        buttonKeys.set(event.code, button);
+        if (button.dataset.touchAction === 'jump') buttonJumpQueued = true;
+        updateTouchButtons();
+      });
+      button.addEventListener('blur', () => clearButtonKeyboardInput(button));
       button.addEventListener('pointerdown', (event) => {
         if (document.hidden) pauseGame();
         if (paused || game.status !== 'playing' || event.button !== 0) return;
@@ -321,7 +349,8 @@
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       const code = event.code;
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space', 'KeyR', 'KeyA', 'KeyD'].includes(code)) return;
-      if (code === 'Space' && (event.target === retry || event.target === pauseButton)) return;
+      if (code === 'Space'
+        && (event.target === retry || event.target === pauseButton || touchButtons.includes(event.target))) return;
       event.preventDefault();
       if (code === 'KeyR' && !event.repeat) {
         restart();
@@ -330,7 +359,10 @@
       keys.add(code);
       if ((code === 'Space' || code === 'ArrowUp') && !event.repeat) jumpQueued = true;
     });
-    window.addEventListener('keyup', (event) => keys.delete(event.code));
+    window.addEventListener('keyup', (event) => {
+      keys.delete(event.code);
+      if (buttonKeys.delete(event.code)) updateTouchButtons();
+    });
     window.addEventListener('blur', pauseGame);
     window.addEventListener('focus', focusResume);
     document.addEventListener('visibilitychange', () => {
@@ -359,15 +391,16 @@
         if (game.status === 'playing') {
           const previousCount = game.collected;
           step(game, {
-            left: keys.has('ArrowLeft') || keys.has('KeyA') || touchHeld('left'),
-            right: keys.has('ArrowRight') || keys.has('KeyD') || touchHeld('right'),
-            jump: jumpQueued || touchJumpQueued,
+            left: keys.has('ArrowLeft') || keys.has('KeyA') || touchHeld('left') || buttonHeld('left'),
+            right: keys.has('ArrowRight') || keys.has('KeyD') || touchHeld('right') || buttonHeld('right'),
+            jump: jumpQueued || touchJumpQueued || buttonJumpQueued,
           });
           if (game.collected !== previousCount) updateCounter();
           if (game.status !== 'playing') showResult();
         }
         jumpQueued = false;
         touchJumpQueued = false;
+        buttonJumpQueued = false;
         elapsed -= STEP_MS;
       }
       draw(ctx, game);
