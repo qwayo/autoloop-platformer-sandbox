@@ -79,6 +79,49 @@ async function setup(page) {
   };
 }
 
+for (const action of ['left', 'right']) {
+  test(`鼠标组合按键松开主键后立即释放${action === 'left' ? '向左' : '向右'}按钮`, async ({ page }) => {
+    const { points } = await setup(page);
+    const button = page.locator(`[data-touch-action="${action}"]`);
+    const direction = action === 'left' ? -1 : 1;
+    const start = await position(page);
+    await page.mouse.move(points[action].x, points[action].y);
+    await page.mouse.down({ button: 'left' });
+    await expect(button).toHaveClass(/is-held/);
+    await advance(page, 2);
+    const held = await position(page);
+    expect((held.x - start.x) * direction).toBeGreaterThan(0);
+
+    await page.mouse.down({ button: 'right' });
+    await expect(button).toHaveClass(/is-held/);
+    await page.mouse.up({ button: 'left' });
+    // 不移动鼠标，也不先松开右键，直接核对主键释放结果。
+    await expect(button).not.toHaveClass(/is-held/);
+    const released = await position(page);
+    await advance(page, 3);
+    expect((await position(page)).x).toBe(released.x);
+
+    await page.mouse.up({ button: 'right' });
+    await page.mouse.down({ button: 'left' });
+    await expect(button).toHaveClass(/is-held/);
+    await advance(page, 2);
+    const pressedAgain = await position(page);
+    expect((pressedAgain.x - released.x) * direction).toBeGreaterThan(0);
+
+    // 普通左键移出按钮后仍保持捕获，松开后停止移动。
+    await page.mouse.move(5, 5);
+    await expect(button).toHaveClass(/is-held/);
+    await advance(page, 2);
+    const outside = await position(page);
+    expect((outside.x - pressedAgain.x) * direction).toBeGreaterThan(0);
+    await page.mouse.up({ button: 'left' });
+    await expect(button).not.toHaveClass(/is-held/);
+    const stopped = await position(page);
+    await advance(page, 3);
+    expect((await position(page)).x).toBe(stopped.x);
+  });
+}
+
 for (const moving of [false, true]) {
   test(`快速点按跳跃在下一物理帧起跳${moving ? '，同时保留方向输入' : ''}`, async ({ page }) => {
     const { touch } = await setup(page);

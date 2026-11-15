@@ -242,12 +242,12 @@
       updateTouchButtons();
     }
 
-    function releaseTouch(event) {
+    function releaseTouch(event, cancelled = event.type !== 'pointerup') {
       const button = touchPointers.get(event.pointerId);
       if (!button) return;
       touchPointers.delete(event.pointerId);
       // 普通松手保留待消费的跳跃；取消或丢失捕获仍清理输入。
-      if (event.type !== 'pointerup' && !touchHeld('jump')) touchJumpQueued = false;
+      if (cancelled && !touchHeld('jump')) touchJumpQueued = false;
       if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
       updateTouchButtons();
     }
@@ -342,6 +342,12 @@
         if (button.dataset.touchAction === 'jump' && !touchHeld('jump')) touchJumpQueued = true;
         touchPointers.set(event.pointerId, button);
         updateTouchButtons();
+      });
+      button.addEventListener('pointermove', (event) => {
+        // 鼠标组合按键只在最后一个键松开时触发 pointerup，主键提前松开通过 buttons 识别。
+        if (event.pointerType === 'mouse' && (event.buttons & 1) === 0) {
+          releaseTouch(event, false);
+        }
       });
       button.addEventListener('pointerup', releaseTouch);
       button.addEventListener('pointercancel', releaseTouch);
