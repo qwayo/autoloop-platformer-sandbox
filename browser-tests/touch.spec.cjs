@@ -163,7 +163,11 @@ for (const key of ['Space', 'Enter']) {
   test(`按钮 ${key} 与真实触屏方向分别释放`, async ({ page }) => {
     const { touch } = await setup(page);
     const right = page.locator('[data-touch-action="right"]');
-    for (let i = 0; i < 3; i += 1) await page.keyboard.press('Tab');
+    // 按实际焦点查找目标按钮，避免依赖固定的 Tab 次数。
+    for (let i = 0; i < 8; i += 1) {
+      await page.keyboard.press('Tab');
+      if (await right.evaluate((element) => element === document.activeElement)) break;
+    }
     await expect(right).toBeFocused();
     await page.keyboard.down(key);
     await touch('touchStart', ['right']);
