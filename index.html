@@ -21,7 +21,7 @@
       <canvas id="game" width="960" height="450" tabindex="-1" aria-label="苔原信使横版关卡" aria-describedby="controls">当前浏览器无法显示游戏画面。</canvas>
       <section id="pause" class="result" aria-labelledby="pause-title" hidden>
         <h2 id="pause-title">游戏已暂停</h2>
-        <p>位置和种子进度已保留，点击“继续游戏”恢复。</p>
+        <p>位置和种子进度已保留，页面可见且有焦点时，点击“继续游戏”或按 Escape 恢复。</p>
         <button id="resume" type="button">继续游戏</button>
       </section>
       <section id="result" class="result" aria-labelledby="result-title" hidden>
@@ -37,7 +37,7 @@
       </div>
       <button type="button" data-touch-action="jump">跳跃</button>
     </nav>
-    <p id="controls">触屏可按住下方按钮移动，同时点按跳跃。用 <kbd>Tab</kbd> 聚焦操作按钮后，按 <kbd>空格</kbd> 或 <kbd>Enter</kbd> 执行对应动作：方向按住移动、松键停止，跳跃每次按下只起跳一次；焦点离开按钮会清除按钮键盘输入。用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 移动，按 <kbd>空格</kbd> 或 <kbd>↑</kbd> 跳跃，游玩时点击“重新开始”或按 <kbd>R</kbd> 重开，回到出生点并清空种子进度。暂停期间不能重开。点击“暂停游戏”可主动暂停，点击“继续游戏”恢复；窗口失焦或页面隐藏时也会暂停。翻过断崖，到达山谷另一头的旗子。</p>
+    <p id="controls">触屏可按住下方按钮移动，同时点按跳跃。用 <kbd>Tab</kbd> 聚焦操作按钮后，按 <kbd>空格</kbd> 或 <kbd>Enter</kbd> 执行对应动作：方向按住移动、松键停止，跳跃每次按下只起跳一次；焦点离开按钮会清除按钮键盘输入。用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 移动，按 <kbd>空格</kbd> 或 <kbd>↑</kbd> 跳跃，游玩时点击“重新开始”或按 <kbd>R</kbd> 重开，回到出生点并清空种子进度。暂停期间不能重开。点击“暂停游戏”或按 <kbd>Escape</kbd> 可主动暂停，位置和种子进度会保留；点击“继续游戏”或再次按 <kbd>Escape</kbd> 恢复，焦点回到画布且不补算暂停时间。长按不会反复切换，带 <kbd>Ctrl</kbd>、<kbd>Meta</kbd>、<kbd>Alt</kbd> 的组合键不触发或拦截，结算时无效；窗口失焦或页面隐藏时也会暂停，仅在页面可见且有焦点时才能继续。翻过断崖，到达山谷另一头的旗子。</p>
   </main>
 </body>
 </html>
