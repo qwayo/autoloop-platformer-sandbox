@@ -387,10 +387,17 @@
       if (document.hidden) pauseGame();
       else focusResume();
     });
-    pauseButton.addEventListener('click', () => {
+    function pauseWhilePlaying() {
+      if (pauseButton.disabled) return;
       pauseGame();
       focusResume();
+    }
+
+    // 多指触屏的非主触点不会生成普通点击事件，松开时单独处理。
+    pauseButton.addEventListener('pointerup', (event) => {
+      if (event.pointerType === 'touch' && !event.isPrimary) pauseWhilePlaying();
     });
+    pauseButton.addEventListener('click', pauseWhilePlaying);
     resume.addEventListener('click', resumeGame);
     retry.addEventListener('click', restart);
     function restartWhilePlaying() {

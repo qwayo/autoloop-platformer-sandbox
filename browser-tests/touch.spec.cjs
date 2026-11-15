@@ -54,8 +54,9 @@ async function setup(page) {
   await page.evaluate(() => window.测试帧(0));
   const client = await page.context().newCDPSession(page);
   const points = {};
-  for (const [index, action] of ['left', 'right', 'jump'].entries()) {
-    const box = await page.locator(`[data-touch-action="${action}"]`).boundingBox();
+  for (const [index, action] of ['left', 'right', 'jump', 'pause'].entries()) {
+    const selector = action === 'pause' ? '#pause-button' : `[data-touch-action="${action}"]`;
+    const box = await page.locator(selector).boundingBox();
     points[action] = { id: index + 1, x: box.x + box.width / 2, y: box.y + box.height / 2 };
   }
   return {
@@ -249,6 +250,68 @@ for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '�
   });
 }
 
+for (const queuedJump of [false, true]) {
+  test(`保持方向触点时第二指暂停保留进度，继续后清除输入${queuedJump ? '及待处理跳跃' : ''}`, async ({ page }) => {
+    const { touch } = await setup(page);
+    // 先收集种子并落在平台上，避免零进度或空中状态掩盖回归。
+    await touch('touchStart', ['right', 'jump']);
+    await advance(page, 21);
+    await touch('touchEnd');
+    await advance(page, 22);
+    await expect(page.locator('#counter')).toHaveText('种子 1 / 3');
+
+    await touch('touchStart', ['right']);
+    await advance(page, 2);
+    if (queuedJump) {
+      await touch('touchStart', ['right', 'jump']);
+      await touch('touchEnd', ['jump']);
+    }
+    const before = await position(page);
+    const counter = await page.locator('#counter').textContent();
+    await touch('touchStart', ['right', 'pause']);
+    await expect(page.locator('#pause')).toBeHidden();
+    // 仅松开第二指，方向触点始终保留。
+    await touch('touchEnd', ['pause']);
+    await expect(page.locator('#pause')).toBeVisible();
+    await expect(page.locator('#resume')).toBeFocused();
+    await expect(page.locator('#pause-button')).toBeDisabled();
+    await expect(page.locator('.is-held')).toHaveCount(0);
+    await advance(page, 120);
+    expect(await position(page)).toEqual(before);
+    await expect(page.locator('#counter')).toHaveText(counter);
+    await expect(page.locator('#result')).toBeHidden();
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#pause')).toBeHidden();
+    await expect(page.locator('#pause-button')).toBeEnabled();
+    await advance(page, 3);
+    expect(await position(page)).toEqual(before);
+    await expect(page.locator('#counter')).toHaveText(counter);
+    await touch('touchEnd');
+    await advance(page, 3);
+    expect(await position(page)).toEqual(before);
+
+    await touch('touchStart', ['right', 'jump']);
+    await advance(page, 2);
+    expect((await position(page)).x).toBeGreaterThan(before.x);
+    expect((await position(page)).y).toBeLessThan(before.y);
+    await touch('touchEnd');
+  });
+}
+
+test('单指点按暂停仍可正常暂停和继续', async ({ page }) => {
+  await setup(page);
+  const before = await position(page);
+  await page.getByRole('button', { name: '暂停游戏', exact: true }).tap();
+  await expect(page.locator('#pause')).toBeVisible();
+  await advance(page, 120);
+  expect(await position(page)).toEqual(before);
+  await page.getByRole('button', { name: '继续游戏', exact: true }).tap();
+  await expect(page.locator('#pause')).toBeHidden();
+  await advance(page, 3);
+  expect(await position(page)).toEqual(before);
+});
+
 for (const outcome of ['跌落', '通关']) {
   test(`全程使用触屏${outcome}后可重玩`, async ({ page }) => {
     const { touch } = await setup(page);
@@ -273,6 +336,17 @@ for (const outcome of ['跌落', '通关']) {
       await expect(page.locator('#counter')).toHaveText('种子 3 / 3');
     }
     await expect(page.locator('#result-title')).toHaveText(outcome === '通关' ? '已到达旗子' : '掉下山谷了');
+    await expect(page.locator('.is-held')).toHaveCount(0);
+    const finished = await position(page);
+    await expect(page.locator('#pause-button')).toBeDisabled();
+    await touch('touchStart', ['right']);
+    await touch('touchStart', ['right', 'pause']);
+    await touch('touchEnd', ['pause']);
+    await touch('touchEnd');
+    await advance(page, 3);
+    await expect(page.locator('#pause')).toBeHidden();
+    await expect(page.locator('#result')).toBeVisible();
+    expect(await position(page)).toEqual(finished);
     await expect(page.locator('.is-held')).toHaveCount(0);
     await page.getByRole('button', { name: outcome === '通关' ? '再玩一次' : '重试', exact: true }).tap();
     await advance(page, 3);
