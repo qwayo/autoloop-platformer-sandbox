@@ -348,10 +348,16 @@
     });
     resume.addEventListener('click', resumeGame);
     retry.addEventListener('click', restart);
-    restartButton.addEventListener('click', () => {
+    function restartWhilePlaying() {
       if (document.hidden) pauseGame();
       if (!paused && game.status === 'playing') restart();
+    }
+
+    // 多指触屏的非主触点不会生成普通点击事件，松开时单独处理。
+    restartButton.addEventListener('pointerup', (event) => {
+      if (event.pointerType === 'touch' && !event.isPrimary) restartWhilePlaying();
     });
+    restartButton.addEventListener('click', restartWhilePlaying);
 
     if (document.hidden) pauseGame();
 

@@ -75,10 +75,10 @@ for (const activation of ['触屏', '鼠标', '回车', '空格']) {
     expect((await position(page)).x).toBeGreaterThan(start.x);
 
     if (activation === '回车' || activation === '空格') {
-      // 通过真实 Tab 顺序访问按钮，检查键盘可达性。
+      // 重开按钮位于画布之前，通过真实反向 Tab 顺序检查键盘可达性。
       await page.locator('#game').focus();
       for (let i = 0; i < 12; i += 1) {
-        await page.keyboard.press('Tab');
+        await page.keyboard.press('Shift+Tab');
         if (await restart.evaluate((button) => document.activeElement === button)) break;
       }
       await expect(restart).toBeFocused();
@@ -104,7 +104,8 @@ for (const activation of ['触屏', '鼠标', '回车', '空格']) {
       await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points.slice(0, 2) });
       await expect(page.locator('.is-held')).toHaveCount(2);
       await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: points });
-      await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: points.slice(0, 2) });
+      // touchEnd 指定要释放的触点，仅松开重开按钮上的第三指。
+      await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: points.slice(2) });
     } else if (activation === '鼠标') {
       await restart.click();
     } else {
