@@ -159,6 +159,38 @@ test('真实多指触屏可同时移动和跳跃，松手后停止且不连续�
   expect(await position(page)).toEqual(idle);
 });
 
+for (const key of ['Space', 'Enter']) {
+  test(`按钮 ${key} 与真实触屏方向分别释放`, async ({ page }) => {
+    const { touch } = await setup(page);
+    const right = page.locator('[data-touch-action="right"]');
+    // 按实际焦点查找目标按钮，避免依赖固定的 Tab 次数。
+    for (let i = 0; i < 8; i += 1) {
+      await page.keyboard.press('Tab');
+      if (await right.evaluate((element) => element === document.activeElement)) break;
+    }
+    await expect(right).toBeFocused();
+    await page.keyboard.down(key);
+    await touch('touchStart', ['right']);
+    await advance(page, 2);
+    const before = await position(page);
+    await page.keyboard.up(key);
+    await expect(right).toHaveClass(/is-held/);
+    await advance(page, 2);
+    expect((await position(page)).x).toBeGreaterThan(before.x);
+    await page.keyboard.down(key);
+    await touch('touchEnd');
+    await expect(right).toHaveClass(/is-held/);
+    const released = await position(page);
+    await advance(page, 2);
+    expect((await position(page)).x).toBeGreaterThan(released.x);
+    await page.keyboard.up(key);
+    await expect(right).not.toHaveClass(/is-held/);
+    const stopped = await position(page);
+    await advance(page, 3);
+    expect(await position(page)).toEqual(stopped);
+  });
+}
+
 for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '重开']) {
   test(`${source}清除触屏方向及尚未消费的跳跃`, async ({ page }) => {
     const { touch } = await setup(page);
