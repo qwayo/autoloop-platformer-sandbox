@@ -202,6 +202,38 @@
     const pausePanel = document.getElementById('pause');
     const resume = document.getElementById('resume');
     const keys = new Set();
+    const touchButtons = [...document.querySelectorAll('[data-touch-action]')];
+    const touchPointers = new Map();
+    let touchJumpQueued = false;
+
+    function touchHeld(action) {
+      return [...touchPointers.values()].some((button) => button.dataset.touchAction === action);
+    }
+
+    function updateTouchButtons() {
+      for (const button of touchButtons) {
+        button.classList.toggle('is-held', [...touchPointers.values()].includes(button));
+      }
+    }
+
+    function clearTouchInput() {
+      const captured = [...touchPointers.entries()];
+      touchPointers.clear();
+      touchJumpQueued = false;
+      for (const [pointerId, button] of captured) {
+        if (button.hasPointerCapture(pointerId)) button.releasePointerCapture(pointerId);
+      }
+      updateTouchButtons();
+    }
+
+    function releaseTouch(event) {
+      const button = touchPointers.get(event.pointerId);
+      if (!button) return;
+      touchPointers.delete(event.pointerId);
+      if (!touchHeld('jump')) touchJumpQueued = false;
+      if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
+      updateTouchButtons();
+    }
     let game = createGame();
     let paused = false;
     let jumpQueued = false;
@@ -209,6 +241,7 @@
     let elapsed = 0;
 
     function resetInputAndTiming() {
+      clearTouchInput();
       keys.clear();
       jumpQueued = false;
       previousTime = undefined;
@@ -254,6 +287,9 @@
     }
 
     function showResult() {
+      clearTouchInput();
+      keys.clear();
+      jumpQueued = false;
       pauseButton.disabled = true;
       const won = game.status === 'won';
       title.textContent = won ? '已到达旗子' : '掉下山谷了';
@@ -261,6 +297,22 @@
       retry.textContent = won ? '再玩一次' : '重试';
       result.hidden = false;
       retry.focus({ preventScroll: true });
+    }
+
+    for (const button of touchButtons) {
+      button.addEventListener('pointerdown', (event) => {
+        if (document.hidden) pauseGame();
+        if (paused || game.status !== 'playing' || event.button !== 0) return;
+        event.preventDefault();
+        button.setPointerCapture(event.pointerId);
+        if (button.dataset.touchAction === 'jump' && !touchHeld('jump')) touchJumpQueued = true;
+        touchPointers.set(event.pointerId, button);
+        updateTouchButtons();
+      });
+      button.addEventListener('pointerup', releaseTouch);
+      button.addEventListener('pointercancel', releaseTouch);
+      button.addEventListener('lostpointercapture', releaseTouch);
+      button.addEventListener('contextmenu', (event) => event.preventDefault());
     }
 
     window.addEventListener('keydown', (event) => {
@@ -307,14 +359,15 @@
         if (game.status === 'playing') {
           const previousCount = game.collected;
           step(game, {
-            left: keys.has('ArrowLeft') || keys.has('KeyA'),
-            right: keys.has('ArrowRight') || keys.has('KeyD'),
-            jump: jumpQueued,
+            left: keys.has('ArrowLeft') || keys.has('KeyA') || touchHeld('left'),
+            right: keys.has('ArrowRight') || keys.has('KeyD') || touchHeld('right'),
+            jump: jumpQueued || touchJumpQueued,
           });
           if (game.collected !== previousCount) updateCounter();
           if (game.status !== 'playing') showResult();
         }
         jumpQueued = false;
+        touchJumpQueued = false;
         elapsed -= STEP_MS;
       }
       draw(ctx, game);
