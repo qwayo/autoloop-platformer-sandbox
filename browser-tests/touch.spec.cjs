@@ -60,10 +60,13 @@ async function setup(page) {
   }
   return {
     points,
-    async touch(type, actions = []) {
+    async touch(type, actions = [], offsetX = 0) {
       await client.send('Input.dispatchTouchEvent', {
         type,
-        touchPoints: actions.map((action) => points[action]),
+        touchPoints: actions.map((action) => ({
+          ...points[action],
+          x: points[action].x + offsetX,
+        })),
       });
     },
     async moveOutside() {
@@ -162,8 +165,8 @@ for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '�
     const start = await position(page);
     await touch('touchStart', ['right']);
     await touch('touchStart', ['right', 'jump']);
-    // 推进指针事件，使跳跃触点的待处理捕获生效后再主动释放。
-    if (source === '丢失捕获') await touch('touchMove', ['right', 'jump']);
+    // 实际移动触点以触发指针事件，使待处理捕获生效后再主动释放。
+    if (source === '丢失捕获') await touch('touchMove', ['right', 'jump'], 1);
     await page.evaluate((kind) => {
       if (kind === '取消' || kind === '丢失捕获') {
         for (const action of ['right', 'jump']) {
@@ -184,8 +187,8 @@ for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '�
       }
     }, source);
     if (source === '丢失捕获') {
-      // 在普通松手之前派发捕获丢失事件，独立验证其输入清理效果。
-      await touch('touchMove', ['right', 'jump']);
+      // 再次移动触点，让浏览器在普通松手前处理捕获释放并派发捕获丢失事件。
+      await touch('touchMove', ['right', 'jump'], 2);
       await expect(page.locator('.is-held')).toHaveCount(0);
     }
     if (source === '重开') await page.keyboard.press('r');
