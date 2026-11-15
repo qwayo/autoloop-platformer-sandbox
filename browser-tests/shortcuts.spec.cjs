@@ -176,7 +176,8 @@ for (const key of ['Space', 'Enter']) {
         await page.keyboard.down(key);
         // 不推进帧，同时检查尚未消费的跳跃是否被清除。
         if (source === '焦点离开') {
-          await page.keyboard.press('Tab');
+          // 向前一个按钮移走焦点，避免越过页面末尾触发窗口失焦暂停。
+          await page.keyboard.press('Shift+Tab');
         } else if (source === '暂停') {
           await page.locator('#pause-button').click();
         } else if (source === '重开') {
