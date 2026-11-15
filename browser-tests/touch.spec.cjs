@@ -81,7 +81,7 @@ for (const moving of [false, true]) {
     const start = await position(page);
     if (moving) await touch('touchStart', ['right']);
     await touch('touchStart', moving ? ['right', 'jump'] : ['jump']);
-    await touch('touchEnd', moving ? ['right'] : []);
+    await touch('touchEnd', ['jump']);
     await expect(page.locator('[data-touch-action="jump"]')).not.toHaveClass(/is-held/);
     expect(await position(page)).toEqual(start);
 
@@ -162,6 +162,8 @@ for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '�
     const start = await position(page);
     await touch('touchStart', ['right']);
     await touch('touchStart', ['right', 'jump']);
+    // 推进指针事件，使跳跃触点的待处理捕获生效后再主动释放。
+    if (source === '丢失捕获') await touch('touchMove', ['right', 'jump']);
     await page.evaluate((kind) => {
       if (kind === '取消' || kind === '丢失捕获') {
         for (const action of ['right', 'jump']) {
@@ -170,6 +172,7 @@ for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '�
           if (kind === '取消') {
             button.dispatchEvent(new PointerEvent('pointercancel', { pointerId, pointerType: 'touch' }));
           } else {
+            if (!button.hasPointerCapture(pointerId)) throw new Error('测试触点尚未获得捕获');
             button.releasePointerCapture(pointerId);
           }
         }
@@ -180,11 +183,16 @@ for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '�
         document.dispatchEvent(new Event('visibilitychange'));
       }
     }, source);
+    if (source === '丢失捕获') {
+      // 在普通松手之前派发捕获丢失事件，独立验证其输入清理效果。
+      await touch('touchMove', ['right', 'jump']);
+      await expect(page.locator('.is-held')).toHaveCount(0);
+    }
     if (source === '重开') await page.keyboard.press('r');
     if (source === '暂停') {
       await page.evaluate(() => document.getElementById('pause-button').click());
     }
-    // 结束真实触摸序列，也让浏览器派发待处理的捕获丢失事件。
+    // 结束真实触摸序列。
     await touch('touchEnd');
     await expect(page.locator('.is-held')).toHaveCount(0);
     if (source === '失焦' || source === '隐藏' || source === '暂停') {
