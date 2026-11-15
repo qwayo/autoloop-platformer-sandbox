@@ -198,6 +198,7 @@
     const title = document.getElementById('result-title');
     const detail = document.getElementById('result-detail');
     const retry = document.getElementById('retry');
+    const restartButton = document.getElementById('restart-button');
     const pauseButton = document.getElementById('pause-button');
     const pausePanel = document.getElementById('pause');
     const resume = document.getElementById('resume');
@@ -254,6 +255,7 @@
       paused = true;
       pausePanel.hidden = false;
       pauseButton.disabled = true;
+      restartButton.disabled = true;
     }
 
     function focusResume() {
@@ -268,6 +270,7 @@
       paused = false;
       pausePanel.hidden = true;
       pauseButton.disabled = false;
+      restartButton.disabled = false;
       document.getElementById('game').focus({ preventScroll: true });
     }
 
@@ -281,6 +284,7 @@
       paused = false;
       pausePanel.hidden = true;
       pauseButton.disabled = false;
+      restartButton.disabled = false;
       result.hidden = true;
       document.getElementById('game').focus({ preventScroll: true });
       updateCounter();
@@ -291,6 +295,7 @@
       keys.clear();
       jumpQueued = false;
       pauseButton.disabled = true;
+      restartButton.disabled = true;
       const won = game.status === 'won';
       title.textContent = won ? '已到达旗子' : '掉下山谷了';
       detail.textContent = won ? `找到 ${game.collected} / ${game.seeds.length} 颗种子。` : '走到断崖边再起跳。';
@@ -321,7 +326,7 @@
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       const code = event.code;
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space', 'KeyR', 'KeyA', 'KeyD'].includes(code)) return;
-      if (code === 'Space' && (event.target === retry || event.target === pauseButton)) return;
+      if (code === 'Space' && (event.target === retry || event.target === pauseButton || event.target === restartButton)) return;
       event.preventDefault();
       if (code === 'KeyR' && !event.repeat) {
         restart();
@@ -343,6 +348,10 @@
     });
     resume.addEventListener('click', resumeGame);
     retry.addEventListener('click', restart);
+    restartButton.addEventListener('click', () => {
+      if (document.hidden) pauseGame();
+      if (!paused && game.status === 'playing') restart();
+    });
 
     if (document.hidden) pauseGame();
 

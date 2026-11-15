@@ -12,7 +12,10 @@
     <header>
       <h1>苔原信使</h1>
       <p id="counter" role="status">种子 0 / 3</p>
-      <button id="pause-button" type="button" aria-controls="pause">暂停游戏</button>
+      <div class="game-actions">
+        <button id="restart-button" type="button">重新开始</button>
+        <button id="pause-button" type="button" aria-controls="pause">暂停游戏</button>
+      </div>
     </header>
     <div class="stage">
       <canvas id="game" width="960" height="450" tabindex="-1" aria-label="苔原信使横版关卡" aria-describedby="controls">当前浏览器无法显示游戏画面。</canvas>
@@ -34,7 +37,7 @@
       </div>
       <button type="button" data-touch-action="jump">跳跃</button>
     </nav>
-    <p id="controls">触屏可按住下方按钮移动，同时点按跳跃。用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 移动，按 <kbd>空格</kbd> 或 <kbd>↑</kbd> 跳跃，按 <kbd>R</kbd> 重开。点击“暂停游戏”可主动暂停，点击“继续游戏”恢复；窗口失焦或页面隐藏时也会暂停。翻过断崖，到达山谷另一头的旗子。</p>
+    <p id="controls">触屏可按住下方按钮移动，同时点按跳跃。用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 移动，按 <kbd>空格</kbd> 或 <kbd>↑</kbd> 跳跃，游玩时点击“重新开始”或按 <kbd>R</kbd> 重开，回到出生点并清空种子进度。暂停期间不能重开。点击“暂停游戏”可主动暂停，点击“继续游戏”恢复；窗口失焦或页面隐藏时也会暂停。翻过断崖，到达山谷另一头的旗子。</p>
   </main>
 </body>
 </html>

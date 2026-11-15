@@ -103,6 +103,8 @@ for (const source of ['失焦', '隐藏', '主动暂停']) {
     await suspend(page, source);
     await expect(page.locator('#pause')).toBeVisible();
     await expect(page.locator('#pause-button')).toBeDisabled();
+    await expect(page.locator('#restart-button')).toBeDisabled();
+    await page.evaluate(() => document.getElementById('restart-button').click());
     if (source === '主动暂停') {
       await expect(page.getByRole('button', { name: '继续游戏' })).toBeFocused();
     }
@@ -123,6 +125,7 @@ for (const source of ['失焦', '隐藏', '主动暂停']) {
     await page.keyboard.press('Enter');
     await expect(page.locator('#pause')).toBeHidden();
     await expect(page.locator('#pause-button')).toBeEnabled();
+    await expect(page.locator('#restart-button')).toBeEnabled();
     await expect(page.locator('#game')).toBeFocused();
 
     // 即使恢复后的首帧相隔一分钟，也不补算暂停期间的时间。
