@@ -373,7 +373,8 @@
         restart();
         return;
       }
-      keys.add(code);
+      // 重复事件不能重新登记暂停或重开时已清除的输入。
+      if (!event.repeat) keys.add(code);
       if ((code === 'Space' || code === 'ArrowUp') && !event.repeat) jumpQueued = true;
     });
     window.addEventListener('keyup', (event) => {
