@@ -25,6 +25,10 @@ async function snapshot(page) {
 }
 
 async function suspend(page, source) {
+  if (source === 'Escape') {
+    await page.keyboard.press('Escape');
+    return;
+  }
   if (source === '主动暂停') {
     await page.getByRole('button', { name: '暂停游戏', exact: true }).click();
     return;
@@ -40,7 +44,7 @@ async function suspend(page, source) {
 }
 
 async function returnToGame(page, source) {
-  if (source === '主动暂停') return;
+  if (source === '主动暂停' || source === 'Escape') return;
   await page.evaluate((kind) => {
     if (kind === '隐藏') {
       delete document.hidden;
@@ -50,7 +54,7 @@ async function returnToGame(page, source) {
   }, source);
 }
 
-for (const source of ['失焦', '隐藏', '主动暂停']) {
+for (const source of ['失焦', '隐藏', '主动暂停', 'Escape']) {
   test(`${source}时冻结断崖上方的进度，继续时不补帧或沿用输入`, async ({ page }) => {
     // 控制帧时钟并记录实际绘制坐标，不向游戏添加测试接口。
     await page.addInitScript(() => {
@@ -105,7 +109,7 @@ for (const source of ['失焦', '隐藏', '主动暂停']) {
     await expect(page.locator('#pause-button')).toBeDisabled();
     await expect(page.locator('#restart-button')).toBeDisabled();
     await page.evaluate(() => document.getElementById('restart-button').click());
-    if (source === '主动暂停') {
+    if (source === '主动暂停' || source === 'Escape') {
       await expect(page.getByRole('button', { name: '继续游戏' })).toBeFocused();
     }
     await advance(page, 600);
@@ -122,7 +126,7 @@ for (const source of ['失焦', '隐藏', '主动暂停']) {
     await advance(page, 1);
     expect(await snapshot(page)).toEqual(airborne);
     await expect(page.getByRole('button', { name: '继续游戏' })).toBeFocused();
-    await page.keyboard.press('Enter');
+    await page.keyboard.press(source === 'Escape' ? 'Escape' : 'Enter');
     await expect(page.locator('#pause')).toBeHidden();
     await expect(page.locator('#pause-button')).toBeEnabled();
     await expect(page.locator('#restart-button')).toBeEnabled();
@@ -141,6 +145,10 @@ for (const source of ['失焦', '隐藏', '主动暂停']) {
     await advance(page, 60);
     expect((await snapshot(page)).resultHidden).toBe(false);
     await expect(page.locator('#result-title')).toHaveText('掉下山谷了');
+    const fallen = await snapshot(page);
+    await page.keyboard.press('Escape');
+    await advance(page, 3);
+    expect(await snapshot(page)).toEqual(fallen);
     await expect(page.locator('#pause-button')).toBeDisabled();
     await page.evaluate(() => document.getElementById('pause-button').click());
     await suspend(page, '失焦');
@@ -200,6 +208,10 @@ for (const source of ['失焦', '隐藏', '主动暂停']) {
       await advance(page, 22);
       await advance(page, 36, right);
       await expect(page.locator('#result-title')).toHaveText('已到达旗子');
+      const won = await snapshot(page);
+      await page.keyboard.press('Escape');
+      await advance(page, 3);
+      expect(await snapshot(page)).toEqual(won);
       await expect(page.locator('#pause-button')).toBeDisabled();
       await page.evaluate(() => document.getElementById('pause-button').click());
       await suspend(page, '失焦');

@@ -103,6 +103,85 @@ for (const modifier of ['ctrlKey', 'metaKey', 'altKey']) {
   }
 }
 
+test('Escape 长按不反复切换，松键后可再次切换', async ({ page }) => {
+  await page.keyboard.down('Escape');
+  await expect(page.locator('#pause')).toBeVisible();
+  await expect(page.locator('#resume')).toBeFocused();
+  await page.keyboard.down('Escape');
+  await expect(page.locator('#pause')).toBeVisible();
+  await page.keyboard.up('Escape');
+  await page.keyboard.down('Escape');
+  await expect(page.locator('#pause')).toBeHidden();
+  await expect(page.locator('#game')).toBeFocused();
+  await page.keyboard.down('Escape');
+  await expect(page.locator('#pause')).toBeHidden();
+  await page.keyboard.up('Escape');
+});
+
+for (const modifier of ['ctrlKey', 'metaKey', 'altKey']) {
+  test(`${modifier} + Escape 在游玩和暂停时均不触发或拦截`, async ({ page }) => {
+    await press(page, 'KeyD');
+    const moved = await position(page);
+    expect(await sendKey(page, 'keydown', 'Escape', { [modifier]: true })).toBe(false);
+    await sendKey(page, 'keyup', 'Escape', { [modifier]: true });
+    await advance(page, 3);
+    await expect(page.locator('#pause')).toBeHidden();
+    expect(await position(page)).toEqual(moved);
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#pause')).toBeVisible();
+    expect(await sendKey(page, 'keydown', 'Escape', { [modifier]: true })).toBe(false);
+    await sendKey(page, 'keyup', 'Escape', { [modifier]: true });
+    await advance(page, 3);
+    await expect(page.locator('#pause')).toBeVisible();
+    expect(await position(page)).toEqual(moved);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#pause')).toBeHidden();
+  });
+}
+
+for (const source of ['失焦', '隐藏']) {
+  test(`${source}时 Escape 不能继续，恢复页面后可继续`, async ({ page }) => {
+    await press(page, 'KeyD');
+    const moved = await position(page);
+    // 在事件分发期间模拟后台页面，避免实际切换窗口造成测试竞争。
+    const prevented = await page.evaluate((kind) => {
+      const property = kind === '隐藏' ? 'hidden' : 'hasFocus';
+      const descriptor = Object.getOwnPropertyDescriptor(document, property);
+      Object.defineProperty(document, property, {
+        configurable: true,
+        value: kind === '隐藏' ? true : () => false,
+      });
+      try {
+        if (kind === '隐藏') document.dispatchEvent(new Event('visibilitychange'));
+        else window.dispatchEvent(new Event('blur'));
+        const event = new KeyboardEvent('keydown', {
+          code: 'Escape', bubbles: true, cancelable: true,
+        });
+        window.dispatchEvent(event);
+        return event.defaultPrevented;
+      } finally {
+        if (descriptor) Object.defineProperty(document, property, descriptor);
+        else delete document[property];
+      }
+    }, source);
+    expect(prevented).toBe(false);
+    await expect(page.locator('#pause')).toBeVisible();
+    await advance(page, 120);
+    expect(await position(page)).toEqual(moved);
+    await page.evaluate(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      window.dispatchEvent(new Event('focus'));
+    });
+    await expect(page.locator('#pause')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#pause')).toBeHidden();
+    await expect(page.locator('#game')).toBeFocused();
+    await advance(page, 3);
+    expect(await position(page)).toEqual(moved);
+  });
+}
+
 test('普通方向键、A/D、空格和 R 保留游戏操作', async ({ page }) => {
   const start = await position(page);
   for (const code of ['ArrowRight', 'KeyD', 'ArrowLeft', 'KeyA']) {

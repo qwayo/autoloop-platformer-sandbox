@@ -351,9 +351,19 @@
 
     window.addEventListener('keydown', (event) => {
       if (document.hidden) pauseGame();
-      if (paused) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       const code = event.code;
+      if (code === 'Escape') {
+        if (event.repeat || game.status !== 'playing' || document.hidden || !document.hasFocus()) return;
+        event.preventDefault();
+        if (paused) resumeGame();
+        else {
+          pauseGame();
+          focusResume();
+        }
+        return;
+      }
+      if (paused) return;
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space', 'KeyR', 'KeyA', 'KeyD'].includes(code)) return;
       if (code === 'Space'
         && (event.target === retry || event.target === pauseButton || event.target === restartButton
