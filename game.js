@@ -246,7 +246,8 @@
       const button = touchPointers.get(event.pointerId);
       if (!button) return;
       touchPointers.delete(event.pointerId);
-      if (!touchHeld('jump')) touchJumpQueued = false;
+      // 普通松手保留待消费的跳跃；取消或丢失捕获仍清理输入。
+      if (event.type !== 'pointerup' && !touchHeld('jump')) touchJumpQueued = false;
       if (button.hasPointerCapture(event.pointerId)) button.releasePointerCapture(event.pointerId);
       updateTouchButtons();
     }
