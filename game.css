@@ -115,6 +115,11 @@ button {
   outline-offset: 2px;
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 #controls {
   margin-top: 0.85rem;
   color: #d6dfc9;
