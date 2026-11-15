@@ -26,7 +26,14 @@
         <button id="retry" type="button">重试</button>
       </section>
     </div>
-    <p id="controls">用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 移动，按 <kbd>空格</kbd> 或 <kbd>↑</kbd> 跳跃，按 <kbd>R</kbd> 重开。翻过断崖，到达山谷另一头的旗子。</p>
+    <nav class="touch-controls" aria-label="触屏游戏操作">
+      <div class="touch-directions">
+        <button type="button" data-touch-action="left">向左</button>
+        <button type="button" data-touch-action="right">向右</button>
+      </div>
+      <button type="button" data-touch-action="jump">跳跃</button>
+    </nav>
+    <p id="controls">触屏可按住下方按钮移动，同时点按跳跃。用 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 移动，按 <kbd>空格</kbd> 或 <kbd>↑</kbd> 跳跃，按 <kbd>R</kbd> 重开。翻过断崖，到达山谷另一头的旗子。</p>
   </main>
 </body>
 </html>
