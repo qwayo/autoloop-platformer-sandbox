@@ -75,6 +75,42 @@ async function setup(page) {
   };
 }
 
+for (const moving of [false, true]) {
+  test(`快速点按跳跃在下一物理帧起跳${moving ? '，同时保留方向输入' : ''}`, async ({ page }) => {
+    const { touch } = await setup(page);
+    const start = await position(page);
+    if (moving) await touch('touchStart', ['right']);
+    await touch('touchStart', moving ? ['right', 'jump'] : ['jump']);
+    await touch('touchEnd', moving ? ['right'] : []);
+    await expect(page.locator('[data-touch-action="jump"]')).not.toHaveClass(/is-held/);
+    expect(await position(page)).toEqual(start);
+
+    await advance(page, 2);
+    const jumped = await position(page);
+    expect(jumped.y).toBeLessThan(start.y);
+    if (moving) expect(jumped.x).toBeGreaterThan(start.x);
+    else expect(jumped.x).toBe(start.x);
+    if (moving) await touch('touchEnd');
+    await advance(page, 60);
+    expect(await position(page)).toEqual({ x: jumped.x, y: start.y });
+  });
+}
+
+test('长按跳跃落地后不会再次起跳', async ({ page }) => {
+  const { touch } = await setup(page);
+  const start = await position(page);
+  await touch('touchStart', ['jump']);
+  await advance(page, 2);
+  expect((await position(page)).y).toBeLessThan(start.y);
+  await advance(page, 60);
+  expect(await position(page)).toEqual(start);
+  await advance(page, 3);
+  expect(await position(page)).toEqual(start);
+  await touch('touchEnd');
+  await advance(page, 3);
+  expect(await position(page)).toEqual(start);
+});
+
 test('真实多指触屏可同时移动和跳跃，松手后停止且不连续起跳', async ({ page }) => {
   const { touch, moveOutside } = await setup(page);
   const start = await position(page);
@@ -120,7 +156,7 @@ test('真实多指触屏可同时移动和跳跃，松手后停止且不连续�
   expect(await position(page)).toEqual(idle);
 });
 
-for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '重开']) {
+for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '重开']) {
   test(`${source}清除触屏方向及尚未消费的跳跃`, async ({ page }) => {
     const { touch } = await setup(page);
     const start = await position(page);
@@ -145,10 +181,13 @@ for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '重开']) {
       }
     }, source);
     if (source === '重开') await page.keyboard.press('r');
+    if (source === '暂停') {
+      await page.evaluate(() => document.getElementById('pause-button').click());
+    }
     // 结束真实触摸序列，也让浏览器派发待处理的捕获丢失事件。
     await touch('touchEnd');
     await expect(page.locator('.is-held')).toHaveCount(0);
-    if (source === '失焦' || source === '隐藏') {
+    if (source === '失焦' || source === '隐藏' || source === '暂停') {
       await expect(page.locator('#pause')).toBeVisible();
       await advance(page, 120);
       expect(await position(page)).toEqual(start);
