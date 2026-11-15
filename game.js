@@ -198,11 +198,42 @@
     const title = document.getElementById('result-title');
     const detail = document.getElementById('result-detail');
     const retry = document.getElementById('retry');
+    const pausePanel = document.getElementById('pause');
+    const resume = document.getElementById('resume');
     const keys = new Set();
     let game = createGame();
+    let paused = false;
     let jumpQueued = false;
     let previousTime;
     let elapsed = 0;
+
+    function resetInputAndTiming() {
+      keys.clear();
+      jumpQueued = false;
+      previousTime = undefined;
+      elapsed = 0;
+    }
+
+    function pauseGame() {
+      resetInputAndTiming();
+      if (game.status !== 'playing') return;
+      paused = true;
+      pausePanel.hidden = false;
+    }
+
+    function focusResume() {
+      if (paused && !document.hidden && document.hasFocus()) {
+        resume.focus({ preventScroll: true });
+      }
+    }
+
+    function resumeGame() {
+      if (!paused || document.hidden || !document.hasFocus()) return;
+      resetInputAndTiming();
+      paused = false;
+      pausePanel.hidden = true;
+      document.getElementById('game').focus({ preventScroll: true });
+    }
 
     function updateCounter() {
       counter.textContent = `种子 ${game.collected} / ${game.seeds.length}`;
@@ -210,8 +241,9 @@
 
     function restart() {
       game = createGame();
-      keys.clear();
-      jumpQueued = false;
+      resetInputAndTiming();
+      paused = false;
+      pausePanel.hidden = true;
       result.hidden = true;
       document.getElementById('game').focus({ preventScroll: true });
       updateCounter();
@@ -227,6 +259,8 @@
     }
 
     window.addEventListener('keydown', (event) => {
+      if (document.hidden) pauseGame();
+      if (paused) return;
       const code = event.code;
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'Space', 'KeyR', 'KeyA', 'KeyD'].includes(code)) return;
       if (code === 'Space' && event.target === retry) return;
@@ -239,13 +273,24 @@
       if ((code === 'Space' || code === 'ArrowUp') && !event.repeat) jumpQueued = true;
     });
     window.addEventListener('keyup', (event) => keys.delete(event.code));
-    window.addEventListener('blur', () => {
-      keys.clear();
-      jumpQueued = false;
+    window.addEventListener('blur', pauseGame);
+    window.addEventListener('focus', focusResume);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) pauseGame();
+      else focusResume();
     });
+    resume.addEventListener('click', resumeGame);
     retry.addEventListener('click', restart);
 
+    if (document.hidden) pauseGame();
+
     function frame(time) {
+      if (document.hidden && !paused) pauseGame();
+      if (paused) {
+        draw(ctx, game);
+        window.requestAnimationFrame(frame);
+        return;
+      }
       elapsed += Math.min(time - (previousTime ?? time), 4 * STEP_MS);
       previousTime = time;
       while (elapsed >= STEP_MS) {

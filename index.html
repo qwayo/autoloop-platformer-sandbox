@@ -15,6 +15,11 @@
     </header>
     <div class="stage">
       <canvas id="game" width="960" height="450" tabindex="-1" aria-label="苔原信使横版关卡" aria-describedby="controls">当前浏览器无法显示游戏画面。</canvas>
+      <section id="pause" class="result" aria-labelledby="pause-title" hidden>
+        <h2 id="pause-title">游戏已暂停</h2>
+        <p>窗口失焦或页面隐藏时暂停，位置和种子进度已保留。</p>
+        <button id="resume" type="button">继续游戏</button>
+      </section>
       <section id="result" class="result" aria-labelledby="result-title" hidden>
         <h2 id="result-title"></h2>
         <p id="result-detail"></p>
