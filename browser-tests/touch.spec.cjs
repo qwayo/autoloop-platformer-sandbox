@@ -62,6 +62,11 @@ async function setup(page) {
   return {
     points,
     async touch(type, actions = [], offsetX = 0) {
+      // 继续按钮在暂停后才显示，按下前读取实际位置。
+      if (type === 'touchStart' && actions.includes('resume')) {
+        const box = await page.locator('#resume').boundingBox();
+        points.resume = { id: 5, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      }
       await client.send('Input.dispatchTouchEvent', {
         type,
         touchPoints: actions.map((action) => ({
@@ -294,7 +299,7 @@ for (const source of ['取消', '丢失捕获', '失焦', '隐藏', '暂停', '�
 }
 
 for (const queuedJump of [false, true]) {
-  test(`保持方向触点时第二指暂停保留进度，继续后清除输入${queuedJump ? '及待处理跳跃' : ''}`, async ({ page }) => {
+  test(`保持方向触点时第二指暂停和继续保留进度，清除输入${queuedJump ? '及待处理跳跃' : ''}`, async ({ page }) => {
     const { touch } = await setup(page);
     // 先收集种子并落在平台上，避免零进度或空中状态掩盖回归。
     await touch('touchStart', ['right', 'jump']);
@@ -324,12 +329,26 @@ for (const queuedJump of [false, true]) {
     await expect(page.locator('#counter')).toHaveText(counter);
     await expect(page.locator('#result')).toBeHidden();
 
-    await page.keyboard.press('Enter');
+    // 第一指始终不离屏，第二指点按继续，必须在松开时恢复。
+    await touch('touchStart', ['right', 'resume']);
+    await expect(page.locator('#pause')).toBeVisible();
+    await touch('touchEnd', ['resume']);
     await expect(page.locator('#pause')).toBeHidden();
     await expect(page.locator('#pause-button')).toBeEnabled();
+    await expect(page.locator('#game')).toBeFocused();
+    await expect(page.locator('.is-held')).toHaveCount(0);
+    // 恢复后的首帧即使相隔一分钟，也不能补帧或消费旧输入。
+    await page.evaluate(() => {
+      window.测试时刻 += 60000;
+      window.测试帧(window.测试时刻);
+    });
+    expect(await position(page)).toEqual(before);
+    await touch('touchMove', ['right'], 1);
     await advance(page, 3);
     expect(await position(page)).toEqual(before);
     await expect(page.locator('#counter')).toHaveText(counter);
+    await expect(page.locator('#result')).toBeHidden();
+    await expect(page.locator('.is-held')).toHaveCount(0);
     await touch('touchEnd');
     await advance(page, 3);
     expect(await position(page)).toEqual(before);
