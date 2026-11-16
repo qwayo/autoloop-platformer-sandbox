@@ -404,6 +404,10 @@
       if (event.pointerType === 'touch' && !event.isPrimary) pauseWhilePlaying();
     });
     pauseButton.addEventListener('click', pauseWhilePlaying);
+    // 保持第一指时，第二指通过松开事件继续游戏。
+    resume.addEventListener('pointerup', (event) => {
+      if (event.pointerType === 'touch' && !event.isPrimary) resumeGame();
+    });
     resume.addEventListener('click', resumeGame);
     retry.addEventListener('click', restart);
     function restartWhilePlaying() {
