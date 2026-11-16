@@ -409,6 +409,10 @@
       if (event.pointerType === 'touch' && !event.isPrimary) resumeGame();
     });
     resume.addEventListener('click', resumeGame);
+    // 保持第一指时，第二指松开结算按钮后沿用现有重开逻辑。
+    retry.addEventListener('pointerup', (event) => {
+      if (event.pointerType === 'touch' && !event.isPrimary) restart();
+    });
     retry.addEventListener('click', restart);
     function restartWhilePlaying() {
       if (document.hidden) pauseGame();

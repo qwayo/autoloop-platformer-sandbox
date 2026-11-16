@@ -67,6 +67,11 @@ async function setup(page) {
         const box = await page.locator('#resume').boundingBox();
         points.resume = { id: 5, x: box.x + box.width / 2, y: box.y + box.height / 2 };
       }
+      // 结算按钮在跌落或通关后才显示，按下前读取实际位置。
+      if (type === 'touchStart' && actions.includes('retry')) {
+        const box = await page.locator('#retry').boundingBox();
+        points.retry = { id: 6, x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      }
       await client.send('Input.dispatchTouchEvent', {
         type,
         touchPoints: actions.map((action) => ({
@@ -374,15 +379,18 @@ test('单指点按暂停仍可正常暂停和继续', async ({ page }) => {
   expect(await position(page)).toEqual(before);
 });
 
-for (const outcome of ['跌落', '通关']) {
-  test(`全程使用触屏${outcome}后可重玩`, async ({ page }) => {
+for (const outcome of ['跌落', '通关']) for (const held of [false, true]) {
+  test(`全程使用触屏${outcome}后${held ? '保持第一指，用第二指' : '用单指'}重玩`, async ({ page }) => {
     const { touch } = await setup(page);
     const start = await position(page);
     async function play(frames, moving = false, jump = false) {
       const actions = [...(moving ? ['right'] : []), ...(jump ? ['jump'] : [])];
       if (actions.length) await touch('touchStart', actions);
       await advance(page, frames);
-      if (actions.length) await touch('touchEnd');
+      // 进入结算时保留最后一段移动的第一指，直到第二指完成重玩。
+      if (actions.length && !(held && await page.locator('#result').isVisible())) {
+        await touch('touchEnd');
+      }
     }
     await play(21, true, true);
     await play(22);
@@ -401,19 +409,51 @@ for (const outcome of ['跌落', '通关']) {
     await expect(page.locator('.is-held')).toHaveCount(0);
     const finished = await position(page);
     await expect(page.locator('#pause-button')).toBeDisabled();
-    await touch('touchStart', ['right']);
+    if (!held) await touch('touchStart', ['right']);
     await touch('touchStart', ['right', 'pause']);
     await touch('touchEnd', ['pause']);
-    await touch('touchEnd');
+    if (!held) await touch('touchEnd');
     await advance(page, 3);
     await expect(page.locator('#pause')).toBeHidden();
     await expect(page.locator('#result')).toBeVisible();
     expect(await position(page)).toEqual(finished);
     await expect(page.locator('.is-held')).toHaveCount(0);
-    await page.getByRole('button', { name: outcome === '通关' ? '再玩一次' : '重试', exact: true }).tap();
+    if (held) {
+      // 每次重开都会写入结算面板的 hidden 属性，用实际界面变更检查只重开一次。
+      await page.evaluate(() => {
+        window.测试重玩次数 = 0;
+        new MutationObserver((records) => {
+          window.测试重玩次数 += records.length;
+        }).observe(document.getElementById('result'), {
+          attributes: true,
+          attributeFilter: ['hidden'],
+        });
+      });
+      await touch('touchStart', ['right', 'retry']);
+      await advance(page, 3);
+      await expect(page.locator('#result')).toBeVisible();
+      expect(await position(page)).toEqual(finished);
+      expect(await page.evaluate(() => window.测试重玩次数)).toBe(0);
+      // 仅松开第二指，第一指继续贴屏。
+      await touch('touchEnd', ['retry']);
+    } else {
+      await page.getByRole('button', { name: outcome === '通关' ? '再玩一次' : '重试', exact: true }).tap();
+    }
+    await expect(page.locator('#result')).toBeHidden();
+    await expect(page.locator('#game')).toBeFocused();
+    await expect(page.locator('.is-held')).toHaveCount(0);
     await advance(page, 3);
     expect(await position(page)).toEqual(start);
     await expect(page.locator('#counter')).toHaveText('种子 0 / 3');
+    if (held) {
+      await touch('touchMove', ['right'], 1);
+      await advance(page, 3);
+      expect(await position(page)).toEqual(start);
+      await touch('touchEnd');
+      await advance(page, 3);
+      expect(await position(page)).toEqual(start);
+      expect(await page.evaluate(() => window.测试重玩次数)).toBe(1);
+    }
     await play(2, true, true);
     expect((await position(page)).x).toBeGreaterThan(start.x);
     expect((await position(page)).y).toBeLessThan(start.y);
