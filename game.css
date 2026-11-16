@@ -58,11 +58,16 @@ h1 {
 
 .stage {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   box-shadow: 0 0 0 1px #8c9a79;
 }
 
 canvas {
   display: block;
+  grid-area: 1 / 1;
+  align-self: start;
+  min-width: 0;
   width: 100%;
   height: auto;
   image-rendering: pixelated;
@@ -82,6 +87,22 @@ canvas {
 
 .result[hidden] {
   display: none;
+}
+
+/* 暂停内容与画布共用网格，文字较多时撑高舞台并推开下方控件。 */
+#pause {
+  position: relative;
+  inset: auto;
+  grid-area: 1 / 1;
+  min-width: 0;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+
+#pause > * {
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 button {
